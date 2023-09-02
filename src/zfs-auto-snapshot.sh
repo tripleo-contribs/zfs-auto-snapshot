@@ -38,11 +38,12 @@ opt_sep='_'
 opt_setauto=''
 opt_syslog=''
 opt_skip_scrub=''
-opt_verbose=''
+opt_verbose='0'
 opt_pre_snapshot=''
 opt_post_snapshot=''
 opt_do_snapshots=1
 opt_min_size=0
+opt_changed=0
 
 # Global summary statistics.
 DESTRUCTION_COUNT='0'
@@ -57,6 +58,7 @@ print_usage ()
 {
 	echo "Usage: $0 [options] [-l label] <'//' | name [name...]>
   --default-exclude  Exclude datasets if com.sun:auto-snapshot is unset.
+  -c, --changed      Snap only if data written > 0.
   -d, --debug        Print debugging messages.
   -e, --event=EVENT  Set the com.sun:auto-snapshot-desc property to EVENT.
       --fast         Use a faster zfs list invocation.
@@ -65,6 +67,8 @@ print_usage ()
   -h, --help         Print this usage message.
   -k, --keep=NUM     Keep NUM recent snapshots and destroy older snapshots.
   -l, --label=LAB    LAB is usually 'hourly', 'daily', or 'monthly'.
+  -m, --min-size=MIN MIN KB written size last snapshot. Defaults to 0kb,
+		     will ALWAYS snapshot.
   -p, --prefix=PRE   PRE is 'zfs-auto-snap' by default.
   -q, --quiet        Suppress warnings and notices at the console.
       --send-full=F  Send zfs full backup. Unimplemented.
@@ -164,19 +168,32 @@ do_snapshots () # properties, flags, snapname, oldglob, [targets...]
 	do
                 # Check if size check is > 0
                 size_check_skip=0
+                bytes_written=`zfs get -Hp -o value written $ii`
                 if [ "$opt_min_size" -gt 0 ]
                 then
-                        bytes_written=`zfs get -Hp -o value written $ii`
                         kb_written=$(( $bytes_written / 1024 ))
                         if [ "$kb_written" -lt "$opt_min_size" ]
                         then
                                 size_check_skip=1
-                                if [ $opt_verbose -gt 0 ]
+                                if [ "$opt_verbose" -eq "1" ]
                                 then
-                                        echo "Skipping target $ii, only $kb_written kB written since last snap. opt_min_size is $opt_min_size"
+                                        echo "Skipping target $ii, only $kb_written kB written since last snap. opt_min_size is $opt_min_size kB."
                                 fi
                         fi
-                fi
+				fi
+
+                # Force check if data changed
+                if [ "$opt_changed" -eq 1 ]
+                then
+				        if [ "$bytes_written" -eq 0 ]
+                        then
+                                size_check_skip=1
+                                if [ "$opt_verbose" -eq "1" ]
+                                then
+                                        echo "Skipping target $ii, 0 bytes written since last snap."
+                                fi
+                        fi
+				fi
 
                 if [ -n "$opt_do_snapshots" -a "$size_check_skip" -eq 0 ]
 		then
@@ -231,12 +248,12 @@ else
 fi
 
 GETOPT=$($GETOPT_BIN \
-  --longoptions=default-exclude,dry-run,fast,skip-scrub,recursive \
+  --longoptions=changed,default-exclude,dry-run,fast,skip-scrub,recursive \
   --longoptions=event:,keep:,label:,prefix:,sep: \
   --longoptions=debug,help,quiet,syslog,verbose \
   --longoptions=pre-snapshot:,post-snapshot:,destroy-only \
   --longoptions=min-size: \
-  --options=dnshe:l:k:p:rs:qgvm: \
+  --options=cdnshe:l:k:p:rs:qgvm: \
   -- "$@" ) \
   || exit 128
 
@@ -245,6 +262,10 @@ eval set -- "$GETOPT"
 while [ "$#" -gt '0' ]
 do
 	case "$1" in
+		(-c|--changed)
+			opt_changed=1
+			shift 1
+			;;
 		(-d|--debug)
 			opt_debug='1'
 			opt_quiet=''
@@ -317,7 +338,7 @@ do
 		(-q|--quiet)
 			opt_debug=''
 			opt_quiet='1'
-			opt_verbose=''
+			opt_verbose='0'
 			shift 1
 			;;
 		(-r|--recursive)
@@ -629,3 +650,4 @@ print_log notice "@$SNAPNAME," \
 
 exit 0
 # }
+
