@@ -44,6 +44,8 @@ opt_post_snapshot=''
 opt_do_snapshots=1
 opt_min_size=0
 opt_changed=0
+opt_date='--utc'
+opt_timezone=''
 
 # Global summary statistics.
 DESTRUCTION_COUNT='0'
@@ -78,6 +80,8 @@ print_usage ()
   -r, --recursive    Snapshot named filesystem and all descendants.
   -v, --verbose      Print info messages.
       --destroy-only Only destroy older snapshots, do not create new ones.
+  -L, --localtime    Use local time instead of UTC for snapshot names. In this case
+                     the timezone abbreviation is added to the name.
       name           Filesystem and volume names, or '//' for all ZFS datasets.
 " 
 }
@@ -251,9 +255,9 @@ GETOPT=$($GETOPT_BIN \
   --longoptions=changed,default-exclude,dry-run,fast,skip-scrub,recursive \
   --longoptions=event:,keep:,label:,prefix:,sep: \
   --longoptions=debug,help,quiet,syslog,verbose \
-  --longoptions=pre-snapshot:,post-snapshot:,destroy-only \
+  --longoptions=pre-snapshot:,post-snapshot:,destroy-only,localtime \
   --longoptions=min-size: \
-  --options=cdnshe:l:k:p:rs:qgvm: \
+  --options=cdnshe:l:k:p:rs:qgvm:L \
   -- "$@" ) \
   || exit 128
 
@@ -381,6 +385,11 @@ do
 			;;
 		(--destroy-only)
 			opt_do_snapshots=''
+			shift 1
+			;;
+        (-L|--localtime)
+			opt_date=''
+			opt_timezone='-%Z'
 			shift 1
 			;;
 		(--)
@@ -603,10 +612,9 @@ done
 # because the SUNW program does. The dash character is the default.
 SNAPPROP="-o com.sun:auto-snapshot-desc='$opt_event'"
 
-# ISO style date; fifteen characters: YYYY-MM-DD-HHMM
+# ISO style date; 15-21 characters depending on the timezone: YYYY-MM-DD-HHMM (UTC) or YYYY-MM-DD-HHMM-XXXXX (local time)
 # On Solaris %H%M expands to 12h34.
-# We use the shortfirm -u here because --utc is not supported on macos.
-DATE=$(date -u +%F-%H%M)
+DATE=$(date $opt_date +%F-%H%M$opt_timezone)
 
 # The snapshot name after the @ symbol.
 SNAPNAME="${opt_prefix:+$opt_prefix$opt_sep}${opt_label:+$opt_label}-$DATE"
