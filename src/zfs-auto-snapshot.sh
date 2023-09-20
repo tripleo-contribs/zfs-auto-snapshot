@@ -159,6 +159,7 @@ do_snapshots () # properties, flags, snapname, oldglob, [targets...]
 	local FLAGS="$2"
 	local NAME="$3"
 	local GLOB="$4"
+	local NAMETRUNC="$4"
 	local TARGETS="$5"
 	local KEEP=''
 	local RUNSNAP=1
@@ -224,7 +225,8 @@ do_snapshots () # properties, flags, snapname, oldglob, [targets...]
 		for jj in $SNAPSHOTS_OLD
 		do
 			# Check whether this is an old snapshot of the filesystem.
-			if [ -z "${jj#$ii@$GLOB}" ]
+			trunc="$ii@$NAMETRUNC"
+			if [ "${jj:0:${#trunc}}" = "$trunc" ]
 			then
 				KEEP=$(( $KEEP - 1 ))
 				if [ "$KEEP" -le '0' ]
@@ -619,8 +621,8 @@ DATE=$(date $opt_date +%F-%H%M$opt_timezone)
 # The snapshot name after the @ symbol.
 SNAPNAME="${opt_prefix:+$opt_prefix$opt_sep}${opt_label:+$opt_label}-$DATE"
 
-# The expression for matching old snapshots.  -YYYY-MM-DD-HHMM
-SNAPGLOB="${opt_prefix:+$opt_prefix$opt_sep}${opt_label:+$opt_label}-???????????????"
+# The snapshot name truncated of the date for matching old snapshots.
+SNAPNAMETRUNC="${opt_prefix:+$opt_prefix$opt_sep}${opt_label:+$opt_label}"
 
 if [ -n "$opt_do_snapshots" ]
 then
@@ -648,8 +650,8 @@ fi
 test -n "$opt_dry_run" \
   && print_log info "Doing a dry run. Not running these commands..."
 
-do_snapshots "$SNAPPROP" ""   "$SNAPNAME" "$SNAPGLOB" "$TARGETS_REGULAR"
-do_snapshots "$SNAPPROP" "-r" "$SNAPNAME" "$SNAPGLOB" "$TARGETS_RECURSIVE"
+do_snapshots "$SNAPPROP" ""   "$SNAPNAME" "$SNAPNAMETRUNC" "$TARGETS_REGULAR"
+do_snapshots "$SNAPPROP" "-r" "$SNAPNAME" "$SNAPNAMETRUNC" "$TARGETS_RECURSIVE"
 
 print_log notice "@$SNAPNAME," \
   "$SNAPSHOT_COUNT created," \
