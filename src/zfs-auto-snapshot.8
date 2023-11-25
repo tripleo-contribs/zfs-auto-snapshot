@@ -16,6 +16,9 @@ for those in which the user-property \fBcom.sun:auto-snapshot\fR is
 set to \fBfalse\fR.  This option reverses the behavior and requires
 \fBcom.sun:auto-snapshot\fR to be set to \fBtrue\fR.
 .TP
+\fB\-c\fR, \fB\-\-changed\fR
+Snap only if data written > 0.
+.TP
 \fB\-d\fR, \fB\-\-debug\fR
 Print debugging messages.
 .TP
@@ -39,6 +42,9 @@ Keep NUM recent snapshots and destroy older snapshots.
 .TP
 \fB\-l\fR, \fB\-\-label\fR=\fILAB\fR
 LAB is usually 'hourly', 'daily', or 'monthly'.
+.TP
+\fB\-m\fR, \fB\-\-min\-size\fR=\fIMIN\fR
+MIN is minimum KB written since last snapshot. Defaults to 0.
 .TP
 \fB\-p\fR, \fB\-\-prefix\fR=\fIPRE\fR
 PRE is 'zfs\-auto\-snap' by default.
@@ -84,6 +90,10 @@ zfs-auto-snapshot (without \fB\-k\fR) to quickly
 snapshot all datasets, then run post-snapshot
 command(s) and clean up with zfs-auto-snapshot
 \fB\-\-destroy-only\fR.
+.TP
+\fB\-L\fR, \fB\-\-localtime\fR
+Use local time instead of UTC for snapshot names. In this case
+the timezone abbreviation is added to the name.
 .TP
 name
 Filesystem and volume names, or '//' for all ZFS datasets.
