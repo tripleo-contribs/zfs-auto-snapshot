@@ -15,7 +15,9 @@ the zfs utilities and cron, and can run in the dash shell.
 Installation:
 -------------
 
-wget https://github.com/MrByte/zfs-auto-snapshot/archive/master.tar.gz
+```shell
+wget https://github.com/tripleo-contribs/zfs-auto-snapshot/archive/main.tar.gz
 tar -xzf master.tar.gz
 cd zfs-auto-snapshot
 make install
+```
